@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Power Dice</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #6366f1;
+            --dice-white: #ffffff;
+            --dot-black: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: white;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* Scéna pro kostky */
+        .dice-area {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            height: 200px;
+            align-items: flex-end;
+            margin-bottom: 50px;
+        }
+
+        /* Obal pro kostku a její stín */
+        .dice-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Samotná kostka */
+        .dice {
+            width: 80px;
+            height: 80px;
+            background: var(--dice-white);
+            border-radius: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 8px;
+            gap: 4px;
+            box-sizing: border-box;
+            box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 2;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Tečky na kostce */
+        .dot {
+            width: 16px;
+            height: 16px;
+            background: var(--dot-black);
+            border-radius: 50%;
+            align-self: center;
+            justify-self: center;
+            opacity: 0; /* Defaultně skryté */
+        }
+
+        /* Stín pod kostkou */
+        .shadow {
+            width: 60px;
+            height: 12px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 50%;
+            margin-top: 15px;
+            filter: blur(4px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(1);
+        }
+
+        /* Animace hodu - výskop a rotace */
+        .dice.rolling {
+            animation: jumpUp 0.4s ease-out;
+        }
+
+        .shadow.rolling {
+            animation: shadowShrink 0.4s ease-out;
+        }
+
+        @keyframes jumpUp {
+            0% { transform: translateY(0) scale(1) rotate(0deg); }
+            50% { transform: translateY(-120px) scale(1.4) rotate(180deg); }
+            100% { transform: translateY(0) scale(1) rotate(360deg); }
+        }
+
+        @keyframes shadowShrink {
+            0% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(0.4); opacity: 0.1; filter: blur(8px); }
+            100% { transform: scale(1); opacity: 0.4; }
+        }
+
+        /* Správné zobrazení teček pro D6 */
+        /* 1 */ [data-val="1"] .d5 { opacity: 1; }
+        /* 2 */ [data-val="2"] .d3, [data-val="2"] .d7 { opacity: 1; }
+        /* 3 */ [data-val="3"] .d3, [data-val="3"] .d5, [data-val="3"] .d7 { opacity: 1; }
+        /* 4 */ [data-val="4"] .d1, [data-val="4"] .d3, [data-val="4"] .d7, [data-val="4"] .d9 { opacity: 1; }
+        /* 5 */ [data-val="5"] .d1, [data-val="5"] .d3, [data-val="5"] .d5, [data-val="5"] .d7, [data-val="5"] .d9 { opacity: 1; }
+        /* 6 */ [data-val="6"] .d1, [data-val="6"] .d3, [data-val="6"] .d4, [data-val="6"] .d6, [data-val="6"] .d7, [data-val="6"] .d9 { opacity: 1; }
+
+        /* D20 Speciální styl */
+        .dice-d20 {
+            width: 90px;
+            height: 90px;
+            background: var(--primary);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.4s;
+        }
+
+        /* Ovládání */
+        .ui {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            background: #334155;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #4338ca;
+            transition: all 0.1s;
+        }
+
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #4338ca;
+        }
+
+        .hint {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="dice-area" id="diceArea">
+        <!-- Kostky se vloží pomocí JS -->
+    </div>
+
+    <div class="ui">
+        <div class="controls">
+            <select id="diceType">
+                <option value="6">D6 (Tečky)</option>
+                <option value="20">D20 (RPG)</option>
+            </select>
+            <select id="diceCount">
+                <option value="1">1 Kostka</option>
+                <option value="2">2 Kostky</option>
+            </select>
+        </div>
+        <button onclick="roll()" id="rollBtn">HODIT (Mezerník)</button>
+        <div class="hint">Rychlejší akce? Jen klikej nebo bouchej do mezerníku!</div>
+    </div>
+</div>
+
+<script>
+    let isRolling = false;
+
+    // Zvuk hodu (syntetický)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playDiceSound() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(10, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function createD6(value) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'dice-wrapper';
+        
+        const dice = document.createElement('div');
+        dice.className = 'dice rolling';
+        dice.setAttribute('data-val', value);
+        
+        // Vytvoření 9 slotů pro tečky (3x3 grid)
+        for (let i = 1; i <= 9; i++) {
+            const dot = document.createElement('div');
+            dot.className = `dot d${i}`;
+            dice.appendChild(dot);
+        }
+
+        // Náhodná rotace pro přirozený vzhled po dopadu
+        const randomRot = (Math.random() - 0.5) * 20;
+        dice.style.transform = `rotate(${randomRot}deg)`;
+
+        const shadow = document.createElement('div');
+        shadow.className = 'shadow rolling';
+        
+        wrapper.appendChild(dice);
+        wrapper.appendChild(shadow);
+        return wrapper;
+    }
+
+    function createD20(value) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'dice-wrapper';
+        
+        const dice = document.createElement('div');
+        dice.className = 'dice-d20 rolling';
+        dice.textContent = value;
+        
+        const randomRot = (Math.random() - 0.5) * 30;
+        dice.style.transform = `rotate(${randomRot}deg)`;
+
+        const shadow = document.createElement('div');
+        shadow.className = 'shadow rolling';
+
+        wrapper.appendChild(dice);
+        wrapper.appendChild(shadow);
+        return wrapper;
+    }
+
+    function roll() {
+        if (isRolling) return;
+        isRolling = true;
+        
+        const area = document.getElementById('diceArea');
+        const type = parseInt(document.getElementById('diceType').value);
+        const count = parseInt(document.getElementById('diceCount').value);
+        
+        area.innerHTML = '';
+        playDiceSound();
+
+        for (let i = 0; i < count; i++) {
+            const val = Math.floor(Math.random() * type) + 1;
+            const diceEl = (type === 6) ? createD6(val) : createD20(val);
+            area.appendChild(diceEl);
+        }
+
+        // Odstranění animace po dokončení hodu
+        setTimeout(() => {
+            isRolling = false;
+        }, 400);
+    }
+
+    // Mezerník
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            roll();
+            // Feedback pro tlačítko
+            const btn = document.getElementById('rollBtn');
+            btn.style.transform = "translateY(3px)";
+            btn.style.boxShadow = "0 2px 0 #4338ca";
+            setTimeout(() => {
+                btn.style.transform = "";
+                btn.style.boxShadow = "";
+            }, 100);
+        }
+    });
+
+    // První inicializace
+    roll();
+</script>
+
+</body>
+</html>
